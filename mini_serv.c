@@ -29,42 +29,6 @@ char *xstrdup( const char *s ) {
     return str;
 }
 
-typedef struct dystr {
-    char * str;
-    size_t size;
-    size_t capacity;
-} dystr;
-
-dystr dystr_create() {
-    dystr str;
-    str.str      = xmalloc( sizeof( char ) );
-    *str.str     = '\0';
-    str.size     = 0;
-    str.capacity = 1;
-    return str;
-}
-
-void dystr_append_c( dystr *str, char c ) {
-    if ( str->size + 1 == str->capacity ) {
-        str->capacity *= 2;
-        str->str = realloc( str->str, str->capacity );
-    }
-    str->str[str->size] = c;
-    str->size++;
-    str->str[str->size] = '\0';
-}
-
-void dystr_clear( dystr *str ) {
-    *str->str = '\0';
-    str->size = 0;
-}
-
-void dystr_destroy( dystr *str ) { free( str->str ); }
-
-void dystr_append( dystr *str, const char *s ) {
-    for ( const char *p = s; *p; p++ ) { dystr_append_c( str, *p ); }
-}
-
 typedef struct list_node {
     void *            data;
     struct list_node *next;
@@ -100,14 +64,14 @@ void list_remove( list *l, list_node *node ) {
 typedef struct client_s {
     int   id;
     int   fd;
-    dystr acc;
+    char  acc[4096 + 1];
+    size_t size;
     list  msg_queue;
 } client_t;
 
 list clients = { 0 };
 
 void destroy_client( client_t *client ) {
-    dystr_destroy( &client->acc );
     for ( list_node *node = client->msg_queue.head; node; ) {
         free( node->data );
         list_node *tmp = node->next;
@@ -121,7 +85,7 @@ void add_client( int fd ) {
     client_t * client = xmalloc( sizeof( client_t ) );
     client->id        = id++;
     client->fd        = fd;
-    client->acc       = dystr_create();
+    client->size      = 0;
     bzero( &client->msg_queue, sizeof( list ) );
     list_push_back( &clients, client );
 }
@@ -198,11 +162,12 @@ int main( int argc, char **argv ) {
                         sprintf( msg,
                                  "client %d: %s\n",
                                  client->id,
-                                 client->acc.str );
+                                 client->acc );
                         broadcast( client->fd, msg );
-                        dystr_clear( &client->acc );
+                        client->size = 0;
                     } else {
-                        dystr_append_c( &client->acc, *ptr );
+                        client->acc[client->size++] = *ptr;
+                        client->acc[client->size] = '\0';
                     }
                 }
             }
