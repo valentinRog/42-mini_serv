@@ -30,7 +30,7 @@ char *xstrdup( const char *s ) {
 }
 
 typedef struct list_node {
-    void *            data;
+    void             *data;
     struct list_node *next;
     struct list_node *prev;
 } list_node;
@@ -62,11 +62,11 @@ void list_remove( list *l, list_node *node ) {
 }
 
 typedef struct client_s {
-    int   id;
-    int   fd;
-    char  acc[4096 + 1];
+    int    id;
+    int    fd;
+    char   acc[4096 + 1];
     size_t size;
-    list  msg_queue;
+    list   msg_queue;
 } client_t;
 
 list clients = { 0 };
@@ -82,7 +82,7 @@ void destroy_client( client_t *client ) {
 
 void add_client( int fd ) {
     static int id;
-    client_t * client = xmalloc( sizeof( client_t ) );
+    client_t  *client = xmalloc( sizeof( client_t ) );
     client->id        = id++;
     client->fd        = fd;
     client->size      = 0;
@@ -167,13 +167,13 @@ int main( int argc, char **argv ) {
                         client->size = 0;
                     } else {
                         client->acc[client->size++] = *ptr;
-                        client->acc[client->size] = '\0';
+                        client->acc[client->size]   = '\0';
                     }
                 }
             }
             if ( FD_ISSET( client->fd, &wfds ) ) {
                 if ( !client->msg_queue.size ) { continue; }
-                char *  msg = client->msg_queue.head->data;
+                char   *msg = client->msg_queue.head->data;
                 ssize_t n   = send( client->fd, msg, strlen( msg ), 0 );
                 if ( n == -1 ) { fatal(); }
                 free( msg );
