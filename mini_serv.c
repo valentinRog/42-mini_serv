@@ -77,7 +77,7 @@ int main( int argc, char **argv ) {
         for ( int i = 0; i < FD_SETSIZE; i++ ) {
             if ( i == fd || !FD_ISSET( i, &rfds ) ) { continue; }
             char    buff[1024];
-            ssize_t n = recv( i, buff, 1024, 0 );
+            ssize_t n = recv( i, buff, sizeof buff / sizeof( char ), 0 );
             if ( n <= 0 ) {
                 sprintf( msg, "server: client %d just left\n", clients[i].id );
                 broadcast( i, &wfds );
