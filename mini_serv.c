@@ -22,7 +22,6 @@ typedef struct client_s {
     int    id;
     char   acc[4096 + 1];
     size_t size;
-    bool   active;
 } client_t;
 
 client_t clients[FD_SETSIZE] = { 0 };
@@ -82,7 +81,6 @@ int main( int argc, char **argv ) {
             if ( n <= 0 ) {
                 sprintf( msg, "server: client %d just left\n", clients[i].id );
                 broadcast( i, &wfds );
-                clients[i].active = false;
                 FD_CLR( i, &fds );
                 continue;
             }
