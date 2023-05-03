@@ -85,15 +85,13 @@ int main( int argc, char **argv ) {
                 continue;
             }
             for ( const char *ptr = buff; ptr != buff + n; ptr++ ) {
-                clients[i].acc[clients[i].size++] = *ptr;
-                clients[i].acc[clients[i].size]   = '\0';
+                client_t *c       = clients + i;
+                c->acc[c->size++] = *ptr;
                 if ( *ptr == '\n' ) {
-                    sprintf( msg,
-                             "client %d: %s",
-                             clients[i].id,
-                             clients[i].acc );
+                    c->acc[c->size] = '\0';
+                    sprintf( msg, "client %d: %s", c->id, c->acc );
                     broadcast( i, &wfds );
-                    clients[i].size = 0;
+                    c->size = 0;
                 }
             }
         }
