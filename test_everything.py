@@ -1,15 +1,21 @@
 import subprocess
 import socket
 import time
+import os
 
 ADDRESS = '127.0.0.1'
 
 def test_wrong_number_of_arguments():
+    os.system("pkill mini_serv")
+
     result = subprocess.run(['./mini_serv'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 1
-    assert result.stderr.decode().strip() == 'Wrong number of arguments'
+    assert result.stderr.decode() == 'Wrong number of arguments\n'
+
 
 def test_client_message_relay():
+    os.system("pkill mini_serv")
+
     PORT = 8080
     server = subprocess.Popen(['./mini_serv', str(PORT)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(0.1)
@@ -28,6 +34,8 @@ def test_client_message_relay():
     server.kill()
 
 def test_messages():
+    os.system("pkill mini_serv")
+
     PORT = 8081
     server = subprocess.Popen(['./mini_serv', str(PORT)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(0.1)
@@ -43,7 +51,7 @@ def test_messages():
     N = 1000
     for _ in range(N):
         c1.sendall(b"yo\nyo\n")
-    time.sleep(0.1)
+    time.sleep(0.3)
     assert c2.recv(30000).decode().count("yo\n") == N * 2
     assert c3.recv(30000).decode().count("yo\n") == N * 2
     
