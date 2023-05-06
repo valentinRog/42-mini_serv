@@ -53,7 +53,7 @@ int main( int argc, char **argv ) {
     addr.sin_family         = AF_INET;
     addr.sin_port           = htons( atoi( argv[1] ) );
     addr.sin_addr.s_addr    = htonl( INADDR_LOOPBACK );
-    if ( bind( fd, ( struct sockaddr * ) &addr, sizeof addr  ) == -1 ) {
+    if ( bind( fd, ( struct sockaddr * ) &addr, sizeof addr ) == -1 ) {
         fatal();
     }
     if ( listen( fd, 100 ) == -1 ) { fatal(); }
@@ -66,10 +66,9 @@ int main( int argc, char **argv ) {
         fd_set rfds = fds;
         fd_set wfds = fds;
         FD_CLR( fd, &wfds );
-        if ( select( FD_SETSIZE, &rfds, &wfds, NULL, NULL ) == -1 ) { fatal(); }
+        select( FD_SETSIZE, &rfds, &wfds, NULL, NULL );
         if ( FD_ISSET( fd, &rfds ) ) {
-            int cfd = accept( fd, NULL, NULL );
-            if ( cfd == -1 ) { fatal(); }
+            int cfd      = accept( fd, NULL, NULL );
             clients[cfd] = client_create();
             FD_SET( cfd, &fds );
             sprintf( msg, "server: client %d just arrived\n", clients[cfd].id );
