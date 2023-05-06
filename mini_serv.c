@@ -20,22 +20,21 @@ void fatal() {
 
 typedef struct client_s {
     int    id;
-    char   acc[4096 + 1];
+    char * acc;
+    size_t capa;
     size_t size;
 } client_t;
 
-client_t clients[FD_SETSIZE] = { 0 };
-
-void add_client( int fd ) {
+client_t client_create() {
     static int id;
-    client_t * client = clients + fd;
-    client->id        = id++;
-    client->size      = 0;
+    client_t   c = { 0 };
+    c.id         = id++;
+    c.capa       = 1 << 8;
+    c.acc        = malloc( c.capa * sizeof( char ) );
+    return c;
 }
 
-char msg[8196];
-
-void broadcast( int fd, fd_set *wfds ) {
+void broadcast( int fd, char msg[], fd_set *wfds ) {
     for ( int i = 0; i < FD_SETSIZE; i++ ) {
         if ( i == fd || !FD_ISSET( i, wfds ) ) { continue; }
         send( i, msg, strlen( msg ), 0 );
@@ -52,7 +51,7 @@ int main( int argc, char **argv ) {
     struct sockaddr_in addr = { 0 };
     addr.sin_family         = AF_INET;
     addr.sin_port           = htons( atoi( argv[1] ) );
-    addr.sin_addr.s_addr    = htonl( 2130706433 );
+    addr.sin_addr.s_addr    = htonl( INADDR_LOOPBACK );
     if ( bind( fd, ( struct sockaddr * ) &addr, sizeof( addr ) ) == -1 ) {
         fatal();
     }
@@ -60,6 +59,8 @@ int main( int argc, char **argv ) {
     fd_set fds;
     FD_ZERO( &fds );
     FD_SET( fd, &fds );
+    client_t clients[FD_SETSIZE] = { 0 };
+    char     msg[1 << 16];
     while ( ~0 ) {
         fd_set rfds = fds;
         fd_set wfds = fds;
@@ -68,10 +69,10 @@ int main( int argc, char **argv ) {
         if ( FD_ISSET( fd, &rfds ) ) {
             int cfd = accept( fd, NULL, NULL );
             if ( cfd == -1 ) { fatal(); }
-            add_client( cfd );
+            clients[cfd] = client_create();
             FD_SET( cfd, &fds );
             sprintf( msg, "server: client %d just arrived\n", clients[cfd].id );
-            broadcast( cfd, &wfds );
+            broadcast( cfd, msg, &wfds );
             continue;
         }
         for ( int i = 0; i < FD_SETSIZE; i++ ) {
@@ -80,17 +81,23 @@ int main( int argc, char **argv ) {
             ssize_t n = recv( i, buff, sizeof buff / sizeof( char ), 0 );
             if ( n <= 0 ) {
                 sprintf( msg, "server: client %d just left\n", clients[i].id );
-                broadcast( i, &wfds );
+                broadcast( i, msg, &wfds );
+                free( clients[i].acc );
+                close( i );
                 FD_CLR( i, &fds );
                 continue;
             }
             for ( const char *ptr = buff; ptr != buff + n; ptr++ ) {
                 client_t *c       = clients + i;
                 c->acc[c->size++] = *ptr;
+                if ( c->size == c->capa ) {
+                    c->capa <<= 1;
+                    c->acc = realloc( c->acc, c->capa );
+                }
                 if ( *ptr == '\n' ) {
                     c->acc[c->size] = '\0';
                     sprintf( msg, "client %d: %s", c->id, c->acc );
-                    broadcast( i, &wfds );
+                    broadcast( i, msg, &wfds );
                     c->size = 0;
                 }
             }

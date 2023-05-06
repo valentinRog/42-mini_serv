@@ -56,3 +56,30 @@ def test_messages():
     assert c3.recv(30000).decode().count("yo\n") == N * 2
     
     server.kill()
+
+def test_large():
+    os.system("pkill mini_serv")
+
+    PORT = 8082
+    server = subprocess.Popen(['./mini_serv', str(PORT)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    time.sleep(0.1)
+
+    c1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    c1.connect((ADDRESS, PORT))
+    c2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    c2.connect((ADDRESS, PORT))
+    c3 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    c3.connect((ADDRESS, PORT))
+
+    N = 30000
+    msg = "x" * N + "\n"
+    c1.sendall(msg.encode())
+    c1.sendall(msg.encode())
+    c1.sendall(msg.encode())
+
+    time.sleep(0.1)
+
+    assert c2.recv(N*4).decode().count("x") == N*3
+    assert c3.recv(N*4).decode().count("x") == N*3
+
+    server.kill()
