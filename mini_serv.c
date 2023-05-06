@@ -36,8 +36,9 @@ client_t client_create() {
 
 void broadcast( int fd, char msg[], fd_set *wfds ) {
     for ( int i = 0; i < FD_SETSIZE; i++ ) {
-        if ( i == fd || !FD_ISSET( i, wfds ) ) { continue; }
-        send( i, msg, strlen( msg ), 0 );
+        if ( i != fd && FD_ISSET( i, wfds ) ) {
+            send( i, msg, strlen( msg ), 0 );
+        }
     }
 }
 
@@ -52,7 +53,7 @@ int main( int argc, char **argv ) {
     addr.sin_family         = AF_INET;
     addr.sin_port           = htons( atoi( argv[1] ) );
     addr.sin_addr.s_addr    = htonl( INADDR_LOOPBACK );
-    if ( bind( fd, ( struct sockaddr * ) &addr, sizeof( addr ) ) == -1 ) {
+    if ( bind( fd, ( struct sockaddr * ) &addr, sizeof addr  ) == -1 ) {
         fatal();
     }
     if ( listen( fd, 100 ) == -1 ) { fatal(); }
